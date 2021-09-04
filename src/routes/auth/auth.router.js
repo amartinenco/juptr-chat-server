@@ -5,12 +5,12 @@ const dbDependent = require('../../middlewares/db-dependent.middleware');
 
 const authRouter = express.Router();
 
-authRouter.post('/signup', //dbDependent,
+authRouter.post('/signup', dbDependent,
     checkSchema(signUpSchema), 
     signUp
 );
 
-authRouter.post('/signin', 
+authRouter.post('/signin', dbDependent,
     checkSchema(signInSchema),
     signIn
 );

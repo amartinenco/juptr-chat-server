@@ -4,6 +4,8 @@ const bcrypt = require('bcryptjs');
 const { validationResult } = require('express-validator');
 const User = require('../../models/User');
 
+const JWT_KEY = process.env.JWT_KEY;
+
 const signUpSchema = {
     email: {
         trim: true,
@@ -101,12 +103,12 @@ const signInSchema = {
     email: {
         trim: true,
         isEmail: {
-            errorMessage: 'The email is invalid',
+            errorMessage: 'Invalid credentials',
             bail: true,
         },
         normalizeEmail: true,
         isLength: { 
-            errorMessage: 'Email is too long',
+            errorMessage: 'Invalid credentials',
             options: {
                 max: 254
             }
@@ -116,20 +118,64 @@ const signInSchema = {
         isLength: {
             minLength: 8
         },
-        errorMessage: "Password must be greater than 8 characters"
+        errorMessage: "Invalid credentials",
+        custom: {
+            options: (enteredPassword, { req, location, path }) => {
+                const { email } = req.body;
+                return new Promise((resolve, reject) => {
+                    User.findOne({ email: email }, function(err, user){        
+                        if(err) {
+                            reject(new Error('Service Unavailable'));
+                        }
+                        if(Boolean(user)) {  
+                            bcrypt.compare(enteredPassword, user.password, (err, res) => {
+                                if (err) {
+                                    reject(new Error('Service Unavailable'));
+                                }
+                                
+                                if (res) {
+                                    // Generate JWT
+                                    const userJwt = jwt.sign({
+                                        id: user.id,
+                                        displayName: user.displayName,
+                                        email: user.email
+                                    }, JWT_KEY);
+
+                                    // Store JWT on a session object
+                                    req.session = {
+                                        jwt: userJwt
+                                    };
+                                    req.body.user = user;
+                                    resolve(true);
+                                } else {
+                                    reject(new Error('Invalid credentials'));
+                                }
+                            });
+                        } else {
+                            reject(new Error('Invalid credentials'));
+                        }
+                    });
+                });
+            },
+        }
     }
 };
 
 
 const signIn = async (req, res) => {
 
-    const errors = validationResult(req);
+    const errors = validationResult(req).formatWith(({ msg, param, value }) => ({
+        msg,
+        param
+    }));
     
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
-    
-    res.status(200).send();
+
+    const { user } = req.body;
+
+    res.status(200).send(user);
 }
 
 const signUp = async (req, res) => {
@@ -152,19 +198,17 @@ const signUp = async (req, res) => {
 
     // Generate JWT
     const userJwt = jwt.sign({
-        id: user.displayName,
+        id: user.id,
+        displayName: user.displayName,
         email: user.email
-    }, 'private key for signing');
+    }, JWT_KEY);
 
     // Store JWT on a session object
     req.session = {
         jwt: userJwt
     };
 
-    res.status(201).send({
-        email: user.email,
-        displayName: user.displayName,
-    });
+    res.status(201).send(user);
 }
 
 module.exports = {
