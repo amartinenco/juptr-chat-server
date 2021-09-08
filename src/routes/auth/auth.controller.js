@@ -211,9 +211,20 @@ const signUp = async (req, res) => {
     res.status(201).send(user);
 }
 
+const signout = (req, res) => {
+    req.session = null;
+    res.send({});
+}
+
+const loggedInUser = (req, res) => {
+    res.send({ currentUser: (req.currentUser)? req.currentUser : null });
+}
+
 module.exports = {
     signUpSchema,
     signUp,
     signInSchema,
     signIn,
+    signout,
+    loggedInUser
 }
