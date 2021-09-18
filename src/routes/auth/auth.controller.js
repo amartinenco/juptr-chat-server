@@ -165,12 +165,11 @@ const signInSchema = {
 const signIn = async (req, res) => {
 
     const errors = validationResult(req).formatWith(({ msg, param, value }) => ({
-        msg,
-        param
+        msg
     }));
     
     if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).json({ errors: [errors.array()[0]] });
     }
 
     const { user } = req.body;

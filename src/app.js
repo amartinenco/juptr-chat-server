@@ -1,13 +1,20 @@
 const express = require('express');
 const cookieSession = require('cookie-session');
 const api = require('./routes/api');
+const cors = require('cors')
 
 const errorHandler = require('./middlewares/error-handler.middleware');
 const NotFoundError = require('./errors/not-found.error');
 
 const app = express();
 
-//app.set('trust proxy, true)
+// Cors 
+const corsOptions = {
+    origin: 'http://localhost:3000',
+    optionsSuccessStatus: 200
+}
+app.use(cors(corsOptions));
+// app.set('trust proxy', true);
 
 app.use(express.json()); 
 // app.use(express.urlencoded({ extended: true }))
