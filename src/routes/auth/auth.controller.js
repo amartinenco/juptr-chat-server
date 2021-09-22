@@ -138,7 +138,8 @@ const signInSchema = {
                                     const userJwt = jwt.sign({
                                         id: user.id,
                                         displayName: user.displayName,
-                                        email: user.email
+                                        email: user.email,
+                                        fullName: user.fullName
                                     }, JWT_KEY);
 
                                     // Store JWT on a session object

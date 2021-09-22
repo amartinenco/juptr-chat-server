@@ -11,7 +11,8 @@ const app = express();
 // Cors 
 const corsOptions = {
     origin: 'http://localhost:3000',
-    optionsSuccessStatus: 200
+    optionsSuccessStatus: 200,
+    credentials: true,
 }
 app.use(cors(corsOptions));
 // app.set('trust proxy', true);
