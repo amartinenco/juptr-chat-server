@@ -179,7 +179,9 @@ const signIn = async (req, res) => {
 }
 
 const signUp = async (req, res) => {
-    const errors = validationResult(req);
+    const errors = validationResult(req).formatWith(({ msg, param, value }) => ({
+        msg, param
+    }));
     
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
@@ -188,8 +190,8 @@ const signUp = async (req, res) => {
     const hashedPassword = await bcrypt.hash(req.body.password, 12);
 
     const user = new User({
-        email: req.body.email,
-        displayName: req.body.displayName,
+        email: req.body.email.toLowerCase(),
+        displayName: req.body.displayName.toLowerCase(),
         fullName: req.body.fullName,
         password: hashedPassword
     });
