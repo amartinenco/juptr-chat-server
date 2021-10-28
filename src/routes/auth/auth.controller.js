@@ -53,7 +53,7 @@ const signUpSchema = {
         custom: {
             options: (value, { req, location, path }) => {
                 return new Promise((resolve, reject) => {
-                    User.findOne({ displayName:value }, function(err, user){        
+                    User.findOne({ displayName:value.toLowerCase() }, function(err, user){        
                       if(err) {
                         reject(new Error('Service Unavailable'))
                       }
