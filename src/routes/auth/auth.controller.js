@@ -202,13 +202,35 @@ const signUp = async (req, res) => {
     const userJwt = jwt.sign({
         id: user.id,
         displayName: user.displayName,
-        email: user.email
+        email: user.email,
+        fullName: user.fullName
     }, JWT_KEY);
 
     // Store JWT on a session object
+    
     req.session = {
         jwt: userJwt
     };
+
+    // if (res) {
+    //     // Generate JWT
+    //     const userJwt = jwt.sign({
+    //         id: user.id,
+    //         displayName: user.displayName,
+    //         email: user.email,
+    //         fullName: user.fullName
+    //     }, JWT_KEY);
+
+    //     // Store JWT on a session object
+    //     req.session = {
+    //         jwt: userJwt
+    //     };
+    //     req.body.user = user;
+    //     resolve(true);
+    // } else {
+    //     reject(new Error('Invalid credentials'));
+    // }
+
 
     res.status(201).send(user);
 }
