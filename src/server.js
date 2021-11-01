@@ -1,4 +1,5 @@
-const express = require('express');
+// const express = require('express');
+// const socket = require('socket.io');
 
 require('dotenv').config();
 
@@ -17,3 +18,4 @@ async function startServer() {
 }
 
 startServer();
+

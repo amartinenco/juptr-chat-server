@@ -3,6 +3,11 @@ const cookieSession = require('cookie-session');
 const api = require('./routes/api');
 const cors = require('cors')
 
+const http = require("http");
+const socket = require('socket.io');
+
+const { handleSocketConnections } = require('./services/webSocket.service');
+
 const errorHandler = require('./middlewares/error-handler.middleware');
 const NotFoundError = require('./errors/not-found.error');
 
@@ -14,6 +19,7 @@ const corsOptions = {
     optionsSuccessStatus: 200,
     credentials: true,
 }
+
 app.use(cors(corsOptions));
 // app.set('trust proxy', true);
 
@@ -40,5 +46,16 @@ app.use(function (req, res, next) {
     res.status(404).send();
 })
 
-module.exports = app;
+const server = http.createServer(app);
+const io = require("socket.io")(server, {
+    cors: {
+        origin: 'http://localhost:3000',
+        methods: ['GET', 'POST'],
+        optionsSuccessStatus: 200,
+        credentials: true,       
+    },
+});
 
+handleSocketConnections(io);
+
+module.exports = server;
