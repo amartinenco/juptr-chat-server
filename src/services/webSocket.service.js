@@ -1,9 +1,12 @@
 const jwt = require('jsonwebtoken');
+const BROADCAST = require('../types/broadcast.types');
+
+let connected_peers = {};
+let reverseSocketToUser = {};
 
 const handleSocketConnections = (io) => {
 
   io.use((socket, next) => {
-    console.log(socket.request.headers.cookie);
     if (socket.request.headers.cookie) {
       try {
         let cookie = socket.request.headers.cookie;
@@ -22,23 +25,42 @@ const handleSocketConnections = (io) => {
         if (userData.id && userData.displayName) {
           next();
         } else {
-          console.log('unauthorized1');
-          next(new Error("unauthorized1"));
+          next(new Error("unauthorized"));
         }
       }
       catch (error) {
-        console.log('unauthorized2');
-        next(new Error("unauthorized2"));
+        next(new Error("unauthorized"));
       }
     } else {
-      console.log('unauthorized3');
-      next(new Error("unauthorized3"));
+      next(new Error("unauthorized"));
     }
   });
 
   io.on("connection", (socket) => {
-    const givenSessionId = socket.request.headers.cookie
-    console.log('connected', socket.id);
+    socket.on('register-new-user', (data) => {
+      if (data.displayName && data.socketId) {
+        connected_peers[data.displayName] = {
+          socketId: data.socketId,
+          fullName: data.fullName
+        };
+        reverseSocketToUser[data.socketId] = data.displayName;
+      }
+      io.sockets.emit('broadcast', { 
+        event: BROADCAST.ACTIVE_USERS,
+        activeUsers: (connected_peers)? Object.getOwnPropertyNames(connected_peers) : []
+      });
+    });
+    socket.on('disconnect', () => {
+      let userToDisconnect = reverseSocketToUser[socket.id];
+      if (userToDisconnect) {
+        console.log('Disconnecting', connected_peers[userToDisconnect]);
+        delete connected_peers[userToDisconnect];
+      }
+      io.sockets.emit('broadcast', { 
+        event: BROADCAST.ACTIVE_USERS,
+        activeUsers: (connected_peers)? Object.getOwnPropertyNames(connected_peers) : []
+      });
+    });
   });
 }
 
