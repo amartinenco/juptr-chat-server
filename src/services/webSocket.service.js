@@ -1,12 +1,14 @@
 const jwt = require('jsonwebtoken');
+const currentUser = require('../middlewares/current-user.middleware');
 const BROADCAST = require('../types/broadcast.types');
-
 let connected_peers = {};
 let reverseSocketToUser = {};
 
-const handleSocketConnections = (io) => {
+let socketIO = null;
 
-  io.use((socket, next) => {
+const handleSocketConnections = (io) => {
+  socketIO = io;
+  io.use(async (socket, next) => {
     if (socket.request.headers.cookie) {
       try {
         let cookie = socket.request.headers.cookie;
@@ -23,7 +25,31 @@ const handleSocketConnections = (io) => {
         let userData = {};
         userData = Object.assign(userData, payload);
         if (userData.id && userData.displayName) {
-          next();
+          let hasUser = !!connected_peers[userData.displayName];
+          if (!hasUser) {
+            next();
+          } else {
+            // // User already logged in from another location
+            // let userToKick = connected_peers[userData.displayName].socketId;
+            // // console.log(connected_peers);
+            // console.log('user to kick', userToKick)
+            // console.log('my socket id', socket.id);
+            // delete connected_peers[userToKick];
+            // const userToKickSocket = await io.in(userToKick).fetchSockets();
+            // console.log('userToKickSocketId', userToKickSocket);
+            // try {
+            //   socket.disconnect(true)
+            // } catch (error) {
+            //   console.log(error);
+            // }
+            // // try {
+            // //   userToKickSocket.disconnect();
+            // // } catch(error) {
+            // //   console.log(error);
+            // // }
+            // // io.sockets.sockets[userToKick].disconnect();
+            next(new Error("Another session is currently active"));
+          }
         } else {
           next(new Error("unauthorized"));
         }
@@ -47,23 +73,42 @@ const handleSocketConnections = (io) => {
       }
       io.sockets.emit('broadcast', { 
         event: BROADCAST.ACTIVE_USERS,
-        activeUsers: (connected_peers)? Object.getOwnPropertyNames(connected_peers) : []
+        payload: (connected_peers)? Object.getOwnPropertyNames(connected_peers) : []
       });
     });
     socket.on('disconnect', () => {
       let userToDisconnect = reverseSocketToUser[socket.id];
       if (userToDisconnect) {
-        console.log('Disconnecting', connected_peers[userToDisconnect]);
+        // console.log('Disconnecting',userToDisconnect, connected_peers[userToDisconnect]);
         delete connected_peers[userToDisconnect];
       }
       io.sockets.emit('broadcast', { 
         event: BROADCAST.ACTIVE_USERS,
-        activeUsers: (connected_peers)? Object.getOwnPropertyNames(connected_peers) : []
+        payload: (connected_peers)? Object.getOwnPropertyNames(connected_peers) : []
       });
     });
   });
 }
+const disconnectWebSocketUser = (userToDisconnect) => {
+  let userToKick = connected_peers[userToDisconnect];
+  try {
+    let socketToDisconnect = socketIO.sockets.sockets.get(userToKick.socketId);
+    socketToDisconnect.disconnect(true);
+    delete connected_peers[userToDisconnect];
+  } catch (error) {
+  }
+}
+
+const checkIfUserConnected = (userToCheck) => {
+  let user = connected_peers[userToCheck];
+  if (user) {
+    return true;
+  } 
+  return false;
+}
 
 module.exports = {
-  handleSocketConnections
-}
+  handleSocketConnections,
+  disconnectWebSocketUser,
+  checkIfUserConnected
+};

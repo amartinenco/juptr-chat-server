@@ -58,4 +58,4 @@ const io = require("socket.io")(server, {
 
 handleSocketConnections(io);
 
-module.exports = server;
+module.exports = { server, io };

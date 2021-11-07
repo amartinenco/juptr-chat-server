@@ -16,7 +16,7 @@ authRouter.post('/signin', dbDependent,
     signIn
 );
 
-authRouter.post('/signout', signout);
+authRouter.post('/signout',currentUser, signout);
 
 authRouter.get('/currentuser', currentUser, loggedInUser);
 

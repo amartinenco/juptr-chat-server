@@ -1,9 +1,6 @@
-// const express = require('express');
-// const socket = require('socket.io');
-
 require('dotenv').config();
 
-const server = require('./app');
+const { server } = require('./app');
 
 const { mongoConnect } = require('./services/mongo.service');
 
