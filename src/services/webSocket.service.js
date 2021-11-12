@@ -87,8 +87,48 @@ const handleSocketConnections = (io) => {
         payload: (connected_peers)? Object.getOwnPropertyNames(connected_peers) : []
       });
     });
+
+    // WebRTC event listeners
+    socket.on('webRTC-offer', (data) => {
+      console.log('handlig webrtc offer');
+      let socketId = getUserSocketId(data);
+      if (socketId && data.sdp) {
+        let callTo = data.name;
+        let callFrom = data.target;
+        io.to(socketId).emit('webRTC-offer', {
+          name: callFrom,
+          target: callTo,
+          type: "video-offer",
+          sdp: data.sdp
+        });
+      }
+    });
+  
+    socket.on('webRTC-candidate', (data) => {
+      console.log('handling ice candidate');
+      let socketId = getUserSocketId(data);
+      if (socketId && data.candidate) {
+        let callTo = data.name;
+        let callFrom = data.target;
+        io.to(socketId).emit('webRTC-candidate', {
+          name: callFrom,
+          target: callTo,
+          candidate: data.candidate
+        });
+      }
+    });
+    // socket.on('webRTC-answer', (data) => {
+    //   console.log('handling webRTC answer');
+    //   let socketId = getUserSocketId(data);
+    //   if (socketId) {
+    //     io.to(socketId).emit('webRTC-answer', {
+    //       answer: data.answer
+    //     });
+    //   }
+    // })
   });
 }
+
 const disconnectWebSocketUser = (userToDisconnect) => {
   let userToKick = connected_peers[userToDisconnect];
   try {
@@ -105,6 +145,15 @@ const checkIfUserConnected = (userToCheck) => {
     return true;
   } 
   return false;
+}
+
+const getUserSocketId = ({target}) => {
+  if (target && (typeof target === 'string') && target.length < 30) { 
+    if (connected_peers[target]) {
+      return connected_peers[target].socketId
+    } 
+  }
+  return undefined;
 }
 
 module.exports = {
