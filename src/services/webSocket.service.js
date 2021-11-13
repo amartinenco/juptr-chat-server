@@ -29,25 +29,6 @@ const handleSocketConnections = (io) => {
           if (!hasUser) {
             next();
           } else {
-            // // User already logged in from another location
-            // let userToKick = connected_peers[userData.displayName].socketId;
-            // // console.log(connected_peers);
-            // console.log('user to kick', userToKick)
-            // console.log('my socket id', socket.id);
-            // delete connected_peers[userToKick];
-            // const userToKickSocket = await io.in(userToKick).fetchSockets();
-            // console.log('userToKickSocketId', userToKickSocket);
-            // try {
-            //   socket.disconnect(true)
-            // } catch (error) {
-            //   console.log(error);
-            // }
-            // // try {
-            // //   userToKickSocket.disconnect();
-            // // } catch(error) {
-            // //   console.log(error);
-            // // }
-            // // io.sockets.sockets[userToKick].disconnect();
             next(new Error("Another session is currently active"));
           }
         } else {
@@ -79,7 +60,6 @@ const handleSocketConnections = (io) => {
     socket.on('disconnect', () => {
       let userToDisconnect = reverseSocketToUser[socket.id];
       if (userToDisconnect) {
-        // console.log('Disconnecting',userToDisconnect, connected_peers[userToDisconnect]);
         delete connected_peers[userToDisconnect];
       }
       io.sockets.emit('broadcast', { 
@@ -90,7 +70,6 @@ const handleSocketConnections = (io) => {
 
     // WebRTC event listeners
     socket.on('webRTC-offer', (data) => {
-      console.log('handlig webrtc offer');
       let socketId = getUserSocketId(data);
       if (socketId && data.sdp) {
         let callTo = data.name;
@@ -105,7 +84,6 @@ const handleSocketConnections = (io) => {
     });
   
     socket.on('webRTC-candidate', (data) => {
-      console.log('handling ice candidate');
       let socketId = getUserSocketId(data);
       if (socketId && data.candidate) {
         let callTo = data.name;
@@ -113,19 +91,23 @@ const handleSocketConnections = (io) => {
         io.to(socketId).emit('webRTC-candidate', {
           name: callFrom,
           target: callTo,
+          type: data.type,
           candidate: data.candidate
         });
       }
     });
-    // socket.on('webRTC-answer', (data) => {
-    //   console.log('handling webRTC answer');
-    //   let socketId = getUserSocketId(data);
-    //   if (socketId) {
-    //     io.to(socketId).emit('webRTC-answer', {
-    //       answer: data.answer
-    //     });
-    //   }
-    // })
+    socket.on('webRTC-answer', (data) => {
+      let socketId = getUserSocketId(data);
+      if (socketId && data.answer) {
+        let callTo = data.name;
+        let callFrom = data.target;
+        io.to(socketId).emit('webRTC-answer', {
+          name: callFrom,
+          target: callTo,
+          answer: data.answer
+        });
+      }
+    })
   });
 }
 
