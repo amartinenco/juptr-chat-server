@@ -4,6 +4,8 @@ const BROADCAST = require('../types/broadcast.types');
 let connected_peers = {};
 let reverseSocketToUser = {};
 
+let callRequests = {};
+
 let socketIO = null;
 
 const handleSocketConnections = (io) => {
@@ -107,7 +109,34 @@ const handleSocketConnections = (io) => {
           answer: data.answer
         });
       }
-    })
+    });
+
+    socket.on('callAttempt', (data) => {
+      let socketId = getUserSocketId(data);
+      if (socketId && data.name) { 
+        let name = data.target;
+        let target = data.name;
+        io.to(socketId).emit('callAttempt', {
+          name: name,
+          target: target,
+          type: 'callee'
+        }); 
+      }
+    }); 
+
+    socket.on('callAttemptResponse', (data) => {
+      let socketId = getUserSocketId(data);
+      if (socketId && data.response && data.name) {
+        let name = data.target;
+        let target = data.name;
+        io.to(socketId).emit('callAttemptResponse', {
+          name: name,
+          target: target,
+          response: data.response
+        }); 
+      }
+    });
+
   });
 }
 
@@ -137,6 +166,15 @@ const getUserSocketId = ({target}) => {
   }
   return undefined;
 }
+
+// const checkIfSomeoneCalled = (id) => {
+//   if (id && (typeof id === 'string') && id.length < 30) { 
+//     if (callRequests[id]) {
+//       return callRequests[id].from;
+//     } 
+//   }
+//   return undefined;
+// }
 
 module.exports = {
   handleSocketConnections,
