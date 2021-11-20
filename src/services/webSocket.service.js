@@ -129,14 +129,35 @@ const handleSocketConnections = (io) => {
       if (socketId && data.response && data.name) {
         let name = data.target;
         let target = data.name;
+        
         io.to(socketId).emit('callAttemptResponse', {
           name: name,
           target: target,
           response: data.response
         }); 
+      } else {
+        if (data && data.name && data.target) {
+          io.to(connected_peers[data.name].socketId).emit('callAttemptResponse', {
+            name: data.name,
+            target: data.target,
+            response: 'CALL_UNAVAILABLE'
+          });
+        }
       }
     });
-
+    //callStatusChange
+    socket.on('callStatusChange', (data) => {
+      let socketId = getUserSocketId(data);
+      if (socketId && data.name) { 
+        let name = data.target;
+        let target = data.name;
+        io.to(socketId).emit('callStatusChange', {
+          name: name,
+          target: target,
+          status: 'CALL_CONNECTION_TERMINATED'
+        }); 
+      }
+    }); 
   });
 }
 
