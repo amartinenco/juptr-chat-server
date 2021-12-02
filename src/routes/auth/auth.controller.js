@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
 const { validationResult } = require('express-validator');
+const { disconnectWebSocketUser, checkIfUserConnected } = require('../../services/webSocket.service');
 const User = require('../../models/User');
 
 const JWT_KEY = process.env.JWT_KEY;
@@ -134,6 +135,10 @@ const signInSchema = {
                                 }
                                 
                                 if (res) {
+                                    if (checkIfUserConnected(user.displayName)) {
+                                        reject(new Error('User already logged in from another computer'));
+                                    }
+
                                     // Generate JWT
                                     const userJwt = jwt.sign({
                                         id: user.id,
@@ -212,30 +217,13 @@ const signUp = async (req, res) => {
         jwt: userJwt
     };
 
-    // if (res) {
-    //     // Generate JWT
-    //     const userJwt = jwt.sign({
-    //         id: user.id,
-    //         displayName: user.displayName,
-    //         email: user.email,
-    //         fullName: user.fullName
-    //     }, JWT_KEY);
-
-    //     // Store JWT on a session object
-    //     req.session = {
-    //         jwt: userJwt
-    //     };
-    //     req.body.user = user;
-    //     resolve(true);
-    // } else {
-    //     reject(new Error('Invalid credentials'));
-    // }
-
-
     res.status(201).send(user);
 }
 
 const signout = (req, res) => {
+    if (req.currentUser) {
+        disconnectWebSocketUser(req.currentUser.displayName);
+    }
     req.session = null;
     res.send({});
 }
