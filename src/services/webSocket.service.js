@@ -14,7 +14,7 @@ let socketIO = null;
 
 const handleSocketConnections = (io) => {
   socketIO = io;
-  io.use(async (socket, next) => {
+  io.use((socket, next) => {
     if (socket.request.headers.cookie) {
       try {
         let cookie = socket.request.headers.cookie;
@@ -50,6 +50,41 @@ const handleSocketConnections = (io) => {
   });
 
   io.on("connection", (socket) => {
+    
+    // if the WebSocket connection is established (which is the most common case), 
+    // you won't be able to update the cookie without closing and recreating the connection, 
+    // as the headers are exchanged only at the beginning of the WebSocket connection.
+
+    // socket.use((packet, next) => {
+    //   if (socket.request.headers.cookie) {
+    //     try {
+    //       let cookie = socket.request.headers.cookie;
+    //       let cookieValue = cookie.split('=');
+    //       let base64Jwt = (cookieValue[1])? cookieValue[1] : null;
+    
+    //       let b64jwt = new Buffer.from(base64Jwt, 'base64');
+    //       let token = JSON.parse(b64jwt);
+  
+    //       const payload = jwt.verify(
+    //         token.jwt, 
+    //         process.env.JWT_KEY
+    //       );
+    //       let userData = {};
+    //       userData = Object.assign(userData, payload);
+    //       if (userData.id && userData.displayName) {
+    //         next();
+    //       } else {
+    //         next(new Error("unauthorized"));
+    //       }
+    //     }
+    //     catch (error) {
+    //       next(new Error("unauthorized"));
+    //     }
+    //   } else {
+    //     next(new Error("unauthorized"));
+    //   }
+    // });
+
     socket.on('register-new-user', async (data) => {
       if (data.displayName && data.socketId) {
         connected_peers[data.displayName] = {
@@ -90,70 +125,50 @@ const handleSocketConnections = (io) => {
       let userToDisconnect = reverseSocketToUser[socket.id];
       if (userToDisconnect) {
         delete connected_peers[userToDisconnect];
-      }
+        deleteUserFromBusyList(userToDisconnect);
+        let currentlyBusyUsers = await getUserFromBusyList();
 
-      await deleteUserFromBusyList(userToDisconnect);
-      let currentlyBusyUsers = await getUserFromBusyList();
+        io.sockets.emit('broadcast', { 
+          event: BROADCAST.ACTIVE_USERS,
+          payload: (connected_peers)? Object.getOwnPropertyNames(connected_peers) : []
+        });
 
-      io.sockets.emit('broadcast', { 
-        event: BROADCAST.ACTIVE_USERS,
-        payload: (connected_peers)? Object.getOwnPropertyNames(connected_peers) : []
-      });
+        io.sockets.emit('broadcast', { 
+          event: BROADCAST.USERS_BUSY,
+          payload: (currentlyBusyUsers)? currentlyBusyUsers : []
+        });
 
-      io.sockets.emit('broadcast', { 
-        event: BROADCAST.USERS_BUSY,
-        payload: (currentlyBusyUsers)? currentlyBusyUsers : []
-      });
+        // Let other party know that you disconnected in case of user disconnected during call dialog
+        getCallDataIfExists(userToDisconnect).then(async (data) => {
+          if (data.with && data.type) {
+            let userIdToNotify = data.with;
+            let socketId = getUserSocketId({ target: userIdToNotify});
+            if (socketId) { 
+              let name = userToDisconnect;
+              let target = userIdToNotify;
+              io.to(socketId).emit('callStatusChange', {
+                name: name,
+                target: target,
+                status: 'CALL_CONNECTION_TERMINATED'
+              });
+              tearDownCallData(userIdToNotify);
+              tearDownCallData(userToDisconnect);
 
-      // Let other party know that you disconnected in case of user disconnected during call dialog
-      getCallDataIfExists(userToDisconnect).then(async (data) => {
-        if (data.with && data.type) {
-          let userIdToNotify = data.with;
-          let socketId = getUserSocketId({ target: userIdToNotify});
-          if (socketId) { 
-            let name = userToDisconnect;
-            let target = userIdToNotify;
-            io.to(socketId).emit('callStatusChange', {
-              name: name,
-              target: target,
-              status: 'CALL_CONNECTION_TERMINATED'
-            });
-            tearDownCallData(userIdToNotify);
-            tearDownCallData(userToDisconnect);
+              deleteUserFromBusyList(userIdToNotify);
+              deleteUserFromBusyList(userToDisconnect);
 
-            deleteUserFromBusyList(userIdToNotify);
-            deleteUserFromBusyList(userToDisconnect);
-
-            /*
+              let currentlyBusyUsers = await getUserFromBusyList();
               io.sockets.emit('broadcast', { 
-              event: BROADCAST.ACTIVE_USERS,
-              payload: (connected_peers)? Object.getOwnPropertyNames(connected_peers) : []
-            */
-
-            // io.sockets.emit('broadcast', { 
-            //   event: BROADCAST.USERS_AVAILABLE,
-            //   payload: [name, target]
-            // });
-            let currentlyBusyUsers = await getUserFromBusyList();
-            io.sockets.emit('broadcast', { 
-              event: BROADCAST.USERS_BUSY,
-              payload: (currentlyBusyUsers)? currentlyBusyUsers : []
-            });
-            // console.log('BUSY USERS:', currentlyBusyUsers);
-            
-            // io.sockets.emit('broadcast', { 
-            //   event: BROADCAST.USERS_AVAILABLE,
-            //   // payload: []
-            //   payload: (connected_peers)? Object.getOwnPropertyNames(connected_peers).filter(busy => !currentlyBusyUsers.includes(busy)) : []
-            // });
-
-            
-
-
-          } 
-        }
-      });
-    });
+                event: BROADCAST.USERS_BUSY,
+                payload: (currentlyBusyUsers)? currentlyBusyUsers : []
+              });
+            } 
+          }
+        });
+        
+        }    
+      }
+    );
 
     // WebRTC event listeners
     socket.on('webRTC-offer', (data) => {

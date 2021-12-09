@@ -21,7 +21,10 @@ const corsOptions = {
 }
 
 app.use(cors(corsOptions));
-// app.set('trust proxy', true);
+
+if (process.env.DEPLOYMENT === 'production') {
+    app.set('trust proxy', true);
+}
 
 app.use(express.json()); 
 // app.use(express.urlencoded({ extended: true }))
@@ -30,7 +33,10 @@ app.use(
     cookieSession({
         name: 's3f15',
         signed: false,
-        secure: false,
+        secure: (process.env.DEPLOYMENT === 'production')? true : false,
+        maxAge: 60 * 60 * 1000,
+        sameSite: 'strict',
+        // secureProxy: (process.env.DEPLOYMENT === 'production')? true : false
     })
 );
 
