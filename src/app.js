@@ -22,7 +22,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-if (process.env.DEPLOYMENT === 'production') {
+if (process.env.NODE_ENV === 'production') {
     app.set('trust proxy', true);
 }
 
@@ -33,7 +33,7 @@ app.use(
     cookieSession({
         name: 's3f15',
         signed: false,
-        secure: (process.env.DEPLOYMENT === 'production')? true : false,
+        secure: (process.env.NODE_ENV === 'production')? true : false,
         maxAge: 60 * 60 * 1000,
         sameSite: 'strict',
         // secureProxy: (process.env.DEPLOYMENT === 'production')? true : false
@@ -55,7 +55,7 @@ app.use(function (req, res, next) {
 const server = http.createServer(app);
 const io = require("socket.io")(server, {
     cors: {
-        origin: 'http://localhost:3000',
+        origin: (process.env.NODE_ENV === 'production')? process.env.FE_URL : 'http://localhost:3000',
         methods: ['GET', 'POST'],
         optionsSuccessStatus: 200,
         credentials: true,       
