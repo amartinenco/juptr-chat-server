@@ -16,7 +16,7 @@ const app = express();
 // Cors 
 const corsOptions = {
     // origin: (process.env.NODE_ENV === 'production')? process.env.FE_URL : 'http://localhost:3000',
-    origin: '*',
+    origin: 'https://juptr-martin112.netlify.app/',
     optionsSuccessStatus: 200,
     credentials: true,
 }
@@ -57,7 +57,7 @@ const server = http.createServer(app);
 const io = require("socket.io")(server, {
     cors: {
         // origin: (process.env.NODE_ENV === 'production')? process.env.FE_URL : 'http://localhost:3000',
-        origin: '*',
+        origin: 'https://juptr-martin112.netlify.app/',
         methods: ['GET', 'POST'],
         optionsSuccessStatus: 200,
         credentials: true,       
