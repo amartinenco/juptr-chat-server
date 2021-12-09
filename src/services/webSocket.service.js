@@ -1,7 +1,11 @@
 const jwt = require('jsonwebtoken');
 const currentUser = require('../middlewares/current-user.middleware');
 const BROADCAST = require('../types/broadcast.types');
+
+const { establishCall, tearDownCallData, getCallDataIfExists, getUserFromBusyList, addUserToBusyList, deleteUserFromBusyList } = require('../services/callPersistance.service');
+
 let connected_peers = {};
+let busyUsers = [];
 let reverseSocketToUser = {};
 
 let callRequests = {};
@@ -46,7 +50,7 @@ const handleSocketConnections = (io) => {
   });
 
   io.on("connection", (socket) => {
-    socket.on('register-new-user', (data) => {
+    socket.on('register-new-user', async (data) => {
       if (data.displayName && data.socketId) {
         connected_peers[data.displayName] = {
           socketId: data.socketId,
@@ -54,19 +58,100 @@ const handleSocketConnections = (io) => {
         };
         reverseSocketToUser[data.socketId] = data.displayName;
       }
+
+      let currentlyBusyUsers = await getUserFromBusyList();
+
       io.sockets.emit('broadcast', { 
         event: BROADCAST.ACTIVE_USERS,
         payload: (connected_peers)? Object.getOwnPropertyNames(connected_peers) : []
       });
+
+      io.sockets.emit('broadcast', { 
+        event: BROADCAST.USERS_BUSY,
+        payload: (currentlyBusyUsers)? currentlyBusyUsers : []
+      });
+
+      ///////////////////////////////////////////////////////////
+      // await addUserToBusyList('test');
+      // let currentlyBusyUsers = await getUserFromBusyList();
+
+      // console.log('BUSY USERS:', currentlyBusyUsers);
+      
+      // io.sockets.emit('broadcast', { 
+      //   event: BROADCAST.ACTIVE_USERS,
+      //   // payload: []
+      //   payload: (connected_peers)? Object.getOwnPropertyNames(connected_peers).filter(busy => !currentlyBusyUsers.includes(busy)) : []
+      // });
+
     });
-    socket.on('disconnect', () => {
+
+
+    socket.on('disconnect', async () => {
       let userToDisconnect = reverseSocketToUser[socket.id];
       if (userToDisconnect) {
         delete connected_peers[userToDisconnect];
       }
+
+      await deleteUserFromBusyList(userToDisconnect);
+      let currentlyBusyUsers = await getUserFromBusyList();
+
       io.sockets.emit('broadcast', { 
         event: BROADCAST.ACTIVE_USERS,
         payload: (connected_peers)? Object.getOwnPropertyNames(connected_peers) : []
+      });
+
+      io.sockets.emit('broadcast', { 
+        event: BROADCAST.USERS_BUSY,
+        payload: (currentlyBusyUsers)? currentlyBusyUsers : []
+      });
+
+      // Let other party know that you disconnected in case of user disconnected during call dialog
+      getCallDataIfExists(userToDisconnect).then(async (data) => {
+        if (data.with && data.type) {
+          let userIdToNotify = data.with;
+          let socketId = getUserSocketId({ target: userIdToNotify});
+          if (socketId) { 
+            let name = userToDisconnect;
+            let target = userIdToNotify;
+            io.to(socketId).emit('callStatusChange', {
+              name: name,
+              target: target,
+              status: 'CALL_CONNECTION_TERMINATED'
+            });
+            tearDownCallData(userIdToNotify);
+            tearDownCallData(userToDisconnect);
+
+            deleteUserFromBusyList(userIdToNotify);
+            deleteUserFromBusyList(userToDisconnect);
+
+            /*
+              io.sockets.emit('broadcast', { 
+              event: BROADCAST.ACTIVE_USERS,
+              payload: (connected_peers)? Object.getOwnPropertyNames(connected_peers) : []
+            */
+
+            // io.sockets.emit('broadcast', { 
+            //   event: BROADCAST.USERS_AVAILABLE,
+            //   payload: [name, target]
+            // });
+            let currentlyBusyUsers = await getUserFromBusyList();
+            io.sockets.emit('broadcast', { 
+              event: BROADCAST.USERS_BUSY,
+              payload: (currentlyBusyUsers)? currentlyBusyUsers : []
+            });
+            // console.log('BUSY USERS:', currentlyBusyUsers);
+            
+            // io.sockets.emit('broadcast', { 
+            //   event: BROADCAST.USERS_AVAILABLE,
+            //   // payload: []
+            //   payload: (connected_peers)? Object.getOwnPropertyNames(connected_peers).filter(busy => !currentlyBusyUsers.includes(busy)) : []
+            // });
+
+            
+
+
+          } 
+        }
       });
     });
 
@@ -111,20 +196,64 @@ const handleSocketConnections = (io) => {
       }
     });
 
-    socket.on('callAttempt', (data) => {
-      let socketId = getUserSocketId(data);
-      if (socketId && data.name) { 
-        let name = data.target;
-        let target = data.name;
-        io.to(socketId).emit('callAttempt', {
-          name: name,
-          target: target,
-          type: 'callee'
-        }); 
-      }
-    }); 
+    // Call dialogs
+    socket.on('callAttempt', async (data) => {      
+      // check if user is already in a call
+      if (data.target) {
+        let callData = await getCallDataIfExists(data.target);
+        if (callData && Object.keys(callData).length === 0) {
+          let socketId = getUserSocketId(data);
+          if (socketId && data.name) { 
+            let name = data.target;
+            let target = data.name;
+            io.to(socketId).emit('callAttempt', {
+              name: name,
+              target: target,
+              type: 'callee'
+            });
+            establishCall(data.name, data.target);
+            addUserToBusyList(data.name);
+            addUserToBusyList(data.target);
+            let currentlyBusyUsers = await getUserFromBusyList();
+            io.sockets.emit('broadcast', { 
+              event: BROADCAST.USERS_BUSY,
+              payload: (currentlyBusyUsers)? currentlyBusyUsers : []
+            });
+          }
+        } else {
+          if (data && data.name && data.target) {
+            io.to(connected_peers[data.name].socketId).emit('callAttemptResponse', {
+              name: data.name,
+              target: data.target,
+              response: 'CALL_UNAVAILABLE'
+            });
+            // io.sockets.emit('broadcast', { 
+            //   event: BROADCAST.USERS_AVAILABLE,
+            //   payload: [data.name]
+            // });
+            // let currentlyBusyUsers = await getUserFromBusyList();
 
-    socket.on('callAttemptResponse', (data) => {
+            // console.log('BUSY USERS:', currentlyBusyUsers);
+            
+            // io.sockets.emit('broadcast', { 
+            //   event: BROADCAST.USERS_AVAILABLE,
+            //   // payload: []
+            //   payload: (connected_peers)? Object.getOwnPropertyNames(connected_peers).filter(busy => !currentlyBusyUsers.includes(busy)) : []
+            // });
+
+            deleteUserFromBusyList(data.name);
+
+            let currentlyBusyUsers = await getUserFromBusyList();
+            io.sockets.emit('broadcast', { 
+              event: BROADCAST.USERS_BUSY,
+              payload: (currentlyBusyUsers)? currentlyBusyUsers : []
+            });
+          }
+        }
+      }
+    });
+
+    socket.on('callAttemptResponse', async (data) => {
       let socketId = getUserSocketId(data);
       if (socketId && data.response && data.name) {
         let name = data.target;
@@ -134,7 +263,35 @@ const handleSocketConnections = (io) => {
           name: name,
           target: target,
           response: data.response
-        }); 
+        });
+        if (data.response === 'CALL_REJECTED') {
+          tearDownCallData(data.name);
+          tearDownCallData(data.target);
+          // io.sockets.emit('broadcast', { 
+          //   event: BROADCAST.USERS_AVAILABLE,
+          //   payload: [data.name, data.target]
+          // });
+          deleteUserFromBusyList(data.name);
+          deleteUserFromBusyList(data.target);
+
+
+          let currentlyBusyUsers = await getUserFromBusyList();
+          io.sockets.emit('broadcast', { 
+            event: BROADCAST.USERS_BUSY,
+            payload: (currentlyBusyUsers)? currentlyBusyUsers : []
+          });
+
+          // let currentlyBusyUsers = await getUserFromBusyList();
+
+          // console.log('BUSY USERS:', currentlyBusyUsers);
+          
+          // io.sockets.emit('broadcast', { 
+          //   event: BROADCAST.USERS_AVAILABLE,
+          //   // payload: []
+          //   payload: (connected_peers)? Object.getOwnPropertyNames(connected_peers).filter(busy => !currentlyBusyUsers.includes(busy)) : []
+          // });
+
+        }
       } else {
         if (data && data.name && data.target) {
           io.to(connected_peers[data.name].socketId).emit('callAttemptResponse', {
@@ -142,11 +299,36 @@ const handleSocketConnections = (io) => {
             target: data.target,
             response: 'CALL_UNAVAILABLE'
           });
+          tearDownCallData(data.name);
+          tearDownCallData(data.target);
+          // io.sockets.emit('broadcast', { 
+          //   event: BROADCAST.USERS_AVAILABLE,
+          //   payload: [data.name, data.target]
+          // });
+          deleteUserFromBusyList(data.name);
+          deleteUserFromBusyList(data.target);
+
+          let currentlyBusyUsers = await getUserFromBusyList();
+          io.sockets.emit('broadcast', { 
+            event: BROADCAST.USERS_BUSY,
+            payload: (currentlyBusyUsers)? currentlyBusyUsers : []
+          });
+
+          // let currentlyBusyUsers = await getUserFromBusyList();
+
+          // // console.log('BUSY USERS:', currentlyBusyUsers);
+          
+          // io.sockets.emit('broadcast', { 
+          //   event: BROADCAST.USERS_AVAILABLE,
+          //   // payload: []
+          //   payload: (connected_peers)? Object.getOwnPropertyNames(connected_peers).filter(busy => !currentlyBusyUsers.includes(busy)) : []
+          // });
+
         }
       }
     });
     //callStatusChange
-    socket.on('callStatusChange', (data) => {
+    socket.on('callStatusChange', async (data) => {
       let socketId = getUserSocketId(data);
       if (socketId && data.name) { 
         let name = data.target;
@@ -155,7 +337,21 @@ const handleSocketConnections = (io) => {
           name: name,
           target: target,
           status: 'CALL_CONNECTION_TERMINATED'
-        }); 
+        });
+        tearDownCallData(data.name);
+        tearDownCallData(data.target);
+        // io.sockets.emit('broadcast', { 
+        //   event: BROADCAST.USERS_AVAILABLE,
+        //   payload: [data.name, data.target]
+        // });
+        deleteUserFromBusyList(data.name);
+        deleteUserFromBusyList(data.target);
+
+        let currentlyBusyUsers = await getUserFromBusyList();
+        io.sockets.emit('broadcast', { 
+          event: BROADCAST.USERS_BUSY,
+          payload: (currentlyBusyUsers)? currentlyBusyUsers : []
+        });
       }
     }); 
   });
@@ -187,15 +383,6 @@ const getUserSocketId = ({target}) => {
   }
   return undefined;
 }
-
-// const checkIfSomeoneCalled = (id) => {
-//   if (id && (typeof id === 'string') && id.length < 30) { 
-//     if (callRequests[id]) {
-//       return callRequests[id].from;
-//     } 
-//   }
-//   return undefined;
-// }
 
 module.exports = {
   handleSocketConnections,
