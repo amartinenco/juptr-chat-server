@@ -12,7 +12,6 @@ const errorHandler = require('./middlewares/error-handler.middleware');
 const NotFoundError = require('./errors/not-found.error');
 
 const app = express();
-app.set('trust proxy', 1);
 // Cors 
 const corsOptions = {
     //origin: (process.env.NODE_ENV === 'production')? process.env.FE_URL : 'http://localhost:3000',
@@ -37,9 +36,9 @@ app.use(
         signed: false,
         // secure: (process.env.NODE_ENV === 'production')? true : false,
         maxAge: 60 * 60 * 1000,
-        // sameSite: 'none',
-        secure: false,
-        secureProxy: false,
+        sameSite: 'none',
+        secure: true,
+        secureProxy: true,
         // secureProxy: (process.env.DEPLOYMENT === 'production')? true : false
     })
 );
