@@ -33,7 +33,7 @@ app.use(
     cookieSession({
         name: 's3f15',
         signed: false,
-        secure: false,
+        secure: true,
         // secure: (process.env.NODE_ENV === 'production')? true : false,
         maxAge: 60 * 60 * 1000,
         sameSite: 'strict',
