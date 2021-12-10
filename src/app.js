@@ -36,7 +36,7 @@ app.use(
         secure: true,
         // secure: (process.env.NODE_ENV === 'production')? true : false,
         maxAge: 60 * 60 * 1000,
-        sameSite: 'strict',
+        // sameSite: 'strict',
         // secureProxy: (process.env.DEPLOYMENT === 'production')? true : false
     })
 );
