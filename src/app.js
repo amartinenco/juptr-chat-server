@@ -12,11 +12,12 @@ const errorHandler = require('./middlewares/error-handler.middleware');
 const NotFoundError = require('./errors/not-found.error');
 
 const app = express();
-
+app.set('trust proxy', 1);
 // Cors 
 const corsOptions = {
     //origin: (process.env.NODE_ENV === 'production')? process.env.FE_URL : 'http://localhost:3000',
-    origin: 'https://juptr-martin112.netlify.app',
+    origin: ['https://juptr-martin112.netlify.app', 'http://juptr-martin112.netlify.app',
+            'http://juptr-martin112.netlify.app/', 'https://juptr-martin112.netlify.app/'],
     optionsSuccessStatus: 200,
     credentials: true,
 }
@@ -24,7 +25,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // if (process.env.NODE_ENV === 'production') {
-    app.set('trust proxy', true);
+
 // }
 
 app.use(express.json()); 
