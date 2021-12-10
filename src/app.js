@@ -15,7 +15,7 @@ const app = express();
 // Cors 
 const corsOptions = {
     //origin: (process.env.NODE_ENV === 'production')? process.env.FE_URL : 'http://localhost:3000',
-    origin: 'https://juptr-fe-martin112.herokuapp.com',
+    origin: ['https://juptr-fe-martin112.herokuapp.com', 'http://juptr-fe-martin112.herokuapp.com'],
     optionsSuccessStatus: 200,
     credentials: true,
 }
@@ -58,7 +58,8 @@ app.use(function (req, res, next) {
 const server = http.createServer(app);
 const io = require("socket.io")(server, {
     cors: {
-        origin: (process.env.NODE_ENV === 'production')? 'https://juptr-fe-martin112.herokuapp.com' : 'http://localhost:3000',
+        // origin: (process.env.NODE_ENV === 'production')? 'https://juptr-fe-martin112.herokuapp.com' : 'http://localhost:3000',
+        origin: ['https://juptr-fe-martin112.herokuapp.com', 'http://juptr-fe-martin112.herokuapp.com'],
         methods: ['GET', 'POST'],
         optionsSuccessStatus: 200,
         credentials: true,       
