@@ -38,8 +38,8 @@ app.use(
         // secure: (process.env.NODE_ENV === 'production')? true : false,
         maxAge: 60 * 60 * 1000,
         // sameSite: 'none',
-        secure: true,
-        secureProxy: true,
+        secure: false,
+        secureProxy: false,
         // secureProxy: (process.env.DEPLOYMENT === 'production')? true : false
     })
 );
