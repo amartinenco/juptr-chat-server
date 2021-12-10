@@ -15,7 +15,8 @@ const app = express();
 
 // Cors 
 const corsOptions = {
-    origin: (process.env.NODE_ENV === 'production')? process.env.FE_URL : 'http://localhost:3000',
+    //origin: (process.env.NODE_ENV === 'production')? process.env.FE_URL : 'http://localhost:3000',
+    origin: 'https://juptr-martin112.netlify.app',
     optionsSuccessStatus: 200,
     credentials: true,
 }
@@ -36,8 +37,8 @@ app.use(
         // secure: (process.env.NODE_ENV === 'production')? true : false,
         maxAge: 60 * 60 * 1000,
         sameSite: 'none',
-        secure: true,
-        secureProxy: true,
+        secure: false,
+        //secureProxy: true,
         // secureProxy: (process.env.DEPLOYMENT === 'production')? true : false
     })
 );
