@@ -1,0 +1,40 @@
+{
+  "files": {
+    "static/js/0.66f7a531.chunk.js": "./static/js/0.66f7a531.chunk.js",
+    "static/js/0.66f7a531.chunk.js.map": "./static/js/0.66f7a531.chunk.js.map",
+    "static/js/1.6bcae41d.chunk.js": "./static/js/1.6bcae41d.chunk.js",
+    "static/js/1.6bcae41d.chunk.js.map": "./static/js/1.6bcae41d.chunk.js.map",
+    "main.css": "./static/css/main.6dea0f05.chunk.css",
+    "main.js": "./static/js/main.dbd7fdbf.chunk.js",
+    "main.js.map": "./static/js/main.dbd7fdbf.chunk.js.map",
+    "runtime-main.js": "./static/js/runtime-main.05e839af.js",
+    "runtime-main.js.map": "./static/js/runtime-main.05e839af.js.map",
+    "static/js/4.67d67c64.chunk.js": "./static/js/4.67d67c64.chunk.js",
+    "static/js/4.67d67c64.chunk.js.map": "./static/js/4.67d67c64.chunk.js.map",
+    "static/js/5.ecccfc24.chunk.js": "./static/js/5.ecccfc24.chunk.js",
+    "static/js/5.ecccfc24.chunk.js.map": "./static/js/5.ecccfc24.chunk.js.map",
+    "static/js/6.443b308f.chunk.js": "./static/js/6.443b308f.chunk.js",
+    "static/js/6.443b308f.chunk.js.map": "./static/js/6.443b308f.chunk.js.map",
+    "static/js/7.4c957d9b.chunk.js": "./static/js/7.4c957d9b.chunk.js",
+    "static/js/7.4c957d9b.chunk.js.map": "./static/js/7.4c957d9b.chunk.js.map",
+    "static/js/8.3f1b7a7c.chunk.js": "./static/js/8.3f1b7a7c.chunk.js",
+    "static/js/8.3f1b7a7c.chunk.js.map": "./static/js/8.3f1b7a7c.chunk.js.map",
+    "static/js/9.1e30793a.chunk.js": "./static/js/9.1e30793a.chunk.js",
+    "static/js/9.1e30793a.chunk.js.map": "./static/js/9.1e30793a.chunk.js.map",
+    "index.html": "./index.html",
+    "static/css/main.6dea0f05.chunk.css.map": "./static/css/main.6dea0f05.chunk.css.map",
+    "static/js/0.66f7a531.chunk.js.LICENSE.txt": "./static/js/0.66f7a531.chunk.js.LICENSE.txt",
+    "static/js/4.67d67c64.chunk.js.LICENSE.txt": "./static/js/4.67d67c64.chunk.js.LICENSE.txt",
+    "static/js/5.ecccfc24.chunk.js.LICENSE.txt": "./static/js/5.ecccfc24.chunk.js.LICENSE.txt",
+    "static/media/jupiter.7cfd27f6.jpg": "./static/media/jupiter.7cfd27f6.jpg",
+    "static/media/logo.svg": "./static/media/logo.6eb01000.svg",
+    "static/media/logo_appbar.ce470a7f.svg": "./static/media/logo_appbar.ce470a7f.svg",
+    "static/media/ringtone_minimal.ogg": "./static/media/ringtone_minimal.011d7af4.ogg"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.05e839af.js",
+    "static/js/4.67d67c64.chunk.js",
+    "static/css/main.6dea0f05.chunk.css",
+    "static/js/main.dbd7fdbf.chunk.js"
+  ]
+}
